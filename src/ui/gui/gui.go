@@ -12,17 +12,31 @@ var logger = log.NewLogger()
 
 type Gui struct {
 	*tview.Application
-	fieldView             *FieldView
-	fieldCellSelectorView *FieldCellSelectorView
-	reversi               *usecase.Reversi
+	reversi       *usecase.Reversi
+	fieldView     *FieldView
+	navigatorView *NavigatorView
+	status        GuiStatus
 }
+
+type GuiView interface {
+	update(*Gui)
+}
+
+type GuiStatus = int
+
+const (
+	GamePlaying GuiStatus = iota
+	GameFinished
+	GameQuit
+)
 
 func New() *Gui {
 	return &Gui{
-		Application:           tview.NewApplication(),
-		fieldView:             newFieldView(),
-		fieldCellSelectorView: newFieldCellSelectorView(),
-		reversi:               usecase.NewReversi(),
+		Application:   tview.NewApplication(),
+		reversi:       usecase.NewReversi(),
+		fieldView:     newFieldView(),
+		navigatorView: newNavigatorView(),
+		status:        GamePlaying,
 	}
 }
 
@@ -32,19 +46,34 @@ func (g *Gui) Run() {
 		SetRows(0).
 		SetColumns(-1, 10, -2).
 		SetOffset(0, 1).
-		AddItem(g.fieldCellSelectorView, 0, 0, 1, 1, 0, 0, true).
+		AddItem(g.navigatorView, 0, 0, 1, 1, 0, 0, true).
 		AddItem(divider, 0, 0, 1, 1, 0, 0, true).
 		AddItem(g.fieldView, 0, 2, 1, 1, 0, 0, false)
 
 	g.updateView()
 
-	if err := g.SetRoot(grid, true).SetFocus(g.fieldCellSelectorView).Run(); err != nil {
+	if err := g.SetRoot(grid, true).SetFocus(g.navigatorView).Run(); err != nil {
 		logger.Error(err)
 		os.Exit(1)
 	}
 }
 
 func (g *Gui) updateView() {
-	go g.fieldView.update(g)
-	go g.fieldCellSelectorView.update(g)
+	views := [...]GuiView{
+		g.fieldView,
+		g.navigatorView,
+	}
+	for _, view := range views {
+		go view.update(g)
+	}
+}
+
+func (g *Gui) gameFinished() {
+	g.status = GameFinished
+	g.updateView()
+}
+
+func (g *Gui) quit() {
+	g.status = GameQuit
+	g.Application.Stop()
 }

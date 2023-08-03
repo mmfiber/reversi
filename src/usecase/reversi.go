@@ -141,3 +141,34 @@ func (r *Reversi) Placed(cell domain.PlaceableFieldCell) {
 func (r *Reversi) Pass(currentStone domain.Stone) {
 	r.currentPlayerStone = r.handler.next(r.field, currentStone)
 }
+
+func (r *Reversi) GetScore() domain.Score {
+	black, white := 0, 0
+	for _, row := range r.field.Value {
+		for _, cell := range row {
+			switch cell.Stone {
+			case domain.BlackStone:
+				black++
+			case domain.WhiteStone:
+				white++
+			}
+		}
+	}
+
+	var winnerStone domain.Stone
+	if black > white {
+		winnerStone = domain.BlackStone
+	} else if white > black {
+		winnerStone = domain.WhiteStone
+	} else {
+		winnerStone = domain.EmptyStone
+	}
+
+	return domain.Score{Black: black, White: white, WinnerStone: winnerStone}
+}
+
+func (r *Reversi) IsFinished() bool {
+	b := r.PlaceableFieldCells(domain.BlackStone)
+	w := r.PlaceableFieldCells(domain.WhiteStone)
+	return len(b) == 0 && len(w) == 0
+}
