@@ -2,6 +2,7 @@ package gui
 
 import (
 	"os"
+	"reversi/src/domain"
 	"reversi/src/log"
 	"reversi/src/usecase"
 
@@ -66,6 +67,15 @@ func (g *Gui) updateView() {
 	for _, view := range views {
 		go view.update(g)
 	}
+}
+
+func (g *Gui) updateFieldView() {
+	go g.fieldView.update(g)
+}
+
+func (g *Gui) highlightFieldCell(cell *domain.FieldCell) {
+	g.fieldView.highlightedCell = cell
+	g.updateFieldView()
 }
 
 func (g *Gui) gameFinished() {

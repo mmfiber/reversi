@@ -167,6 +167,14 @@ func (r *Reversi) GetScore() domain.Score {
 	return domain.Score{Black: black, White: white, WinnerStone: winnerStone}
 }
 
+func (r *Reversi) GetFieldCell(ridx, cidx int) *domain.FieldCell {
+	if ridx < 0 || ridx > 7 || cidx < 0 || cidx > 7 {
+		return nil
+	}
+
+	return r.field.Value[ridx][cidx]
+}
+
 func (r *Reversi) IsFinished() bool {
 	b := r.PlaceableFieldCells(domain.BlackStone)
 	w := r.PlaceableFieldCells(domain.WhiteStone)

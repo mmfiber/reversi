@@ -16,6 +16,11 @@ func IntToCapitalizedChar(i int) (string, error) {
 	return string('A' - 1 + i), nil
 }
 
+func CapitalizedCharToInt(char string) int {
+	c := rune(CharToRune(char))
+	return int(c - 'A' + 1)
+}
+
 func CharToRune(char string) rune {
 	return []rune(char)[0]
 }

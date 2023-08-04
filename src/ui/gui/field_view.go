@@ -5,12 +5,15 @@ import (
 	"reversi/src/utility/strconverter"
 	"strconv"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 type FieldView struct {
 	*tview.Table
 	GuiView
+
+	highlightedCell *domain.FieldCell
 }
 
 func newFieldView() *FieldView {
@@ -45,6 +48,7 @@ func newFieldView() *FieldView {
 
 func (f *FieldView) update(g *Gui) {
 	field := g.reversi.Field()
+	hcell := f.highlightedCell
 	for ridx, row := range field.Value {
 		for cidx, cell := range row {
 			var newcell *tview.TableCell
@@ -56,6 +60,11 @@ func (f *FieldView) update(g *Gui) {
 			default:
 				newcell = tview.NewTableCell(" ")
 			}
+
+			if hcell != nil && hcell.Pos.X == ridx && hcell.Pos.Y == cidx {
+				newcell.SetBackgroundColor(tcell.ColorAqua)
+			}
+
 			// 上部・左部のインデックスとボーダーを考慮して cell を update
 			f.Table.SetCell((ridx+1)*2, (cidx+1)*2, newcell)
 		}

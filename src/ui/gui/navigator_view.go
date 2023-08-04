@@ -29,19 +29,25 @@ func (n *NavigatorView) update(g *Gui) {
 	viewSetter := func(view interface {
 		tview.Primitive
 		GuiView
-	}) {
+	}) (updated bool) {
+		updated = false
 		if n.view == view {
 			return
 		}
+
+		updated = true
 		n.Clear()
 		n.AddItem(view, 1, 1, 1, 1, 0, 0, true)
 		n.view = view
 		g.SetFocus(view)
+		return
 	}
 
 	switch g.status {
 	case GamePlaying:
-		viewSetter(n.fieldCellSelectorView)
+		if viewSetter(n.fieldCellSelectorView) {
+			n.fieldCellSelectorView.enableFieldHighlight(g)
+		}
 	case GameFinished:
 		viewSetter(n.gameScoreView)
 	default:
