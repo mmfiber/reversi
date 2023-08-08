@@ -31,10 +31,10 @@ const (
 	GameQuit
 )
 
-func New() *Gui {
+func New(solo, duel bool) *Gui {
 	return &Gui{
 		Application:   tview.NewApplication(),
-		reversi:       usecase.NewReversi(),
+		reversi:       usecase.NewReversi(solo, duel),
 		fieldView:     newFieldView(),
 		navigatorView: newNavigatorView(),
 		status:        GamePlaying,

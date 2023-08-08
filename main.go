@@ -10,6 +10,8 @@ import (
 // flags
 var (
 	mode string
+	solo bool
+	duel bool
 )
 var logger = log.NewLogger()
 
@@ -20,7 +22,7 @@ type Runner interface {
 func getRunner() (Runner, error) {
 	switch mode {
 	case "cli":
-		return gui.New(), nil
+		return gui.New(solo, duel), nil
 	// case "worker":
 	// 	fmt.Println("s:", s)
 	default:
@@ -35,6 +37,8 @@ func getRunner() (Runner, error) {
 // see more: https://go.dev/doc/effective_go#init
 func init() {
 	flag.StringVar(&mode, "mode", "", "Select mode one of 'cli' and 'worker'")
+	flag.BoolVar(&solo, "solo", false, "Solo play")
+	flag.BoolVar(&duel, "duel", false, "Duel")
 }
 
 func main() {

@@ -7,12 +7,14 @@ import (
 )
 
 type ReversiHandler interface {
-	next(r *Reversi, currentStone domain.Stone) domain.Stone
+	postPut(r *Reversi) domain.Stone
 }
 
-func getRevesiHandler() ReversiHandler {
-	return &SingleReversiHandler{}
-	// return &DuelReversiHandler{}
+func getRevesiHandler(solo, duel bool) ReversiHandler {
+	if solo {
+		return &SoloReversiHandler{&SimpleReversiAlgolithm{}}
+	}
+	return &DuelReversiHandler{}
 }
 
 type Reversi struct {
@@ -21,9 +23,9 @@ type Reversi struct {
 	currentPlayerStone domain.Stone
 }
 
-func NewReversi() *Reversi {
+func NewReversi(solo, duel bool) *Reversi {
 	return &Reversi{
-		handler:            getRevesiHandler(),
+		handler:            getRevesiHandler(solo, duel),
 		field:              domain.NewField(),
 		currentPlayerStone: domain.BlackStone,
 	}
@@ -122,25 +124,27 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 	return putableFieldCells
 }
 
-func (r *Reversi) Put(cell domain.PutableFieldCell) {
+func (r *Reversi) put(cell domain.PutableFieldCell) {
 	field := r.field.Value
 	stone := cell.PutableStone
 
-	c := cell.FieldCell
-	c.Stone = stone
-	field[cell.Pos.X][cell.Pos.Y] = c
+	field[cell.Pos.X][cell.Pos.Y] = cell.FieldCell
+	field[cell.Pos.X][cell.Pos.Y].Stone = stone
 
 	for _, reversed := range cell.ReversiableCells {
 		reversed.Stone = stone
 		x, y := reversed.Pos.X, reversed.Pos.Y
 		field[x][y] = reversed
 	}
+}
 
-	r.currentPlayerStone = r.handler.next(r, stone)
+func (r *Reversi) Put(cell domain.PutableFieldCell) {
+	r.put(cell)
+	r.currentPlayerStone = r.handler.postPut(r)
 }
 
 func (r *Reversi) Pass(currentStone domain.Stone) {
-	r.currentPlayerStone = r.handler.next(r, currentStone)
+	r.currentPlayerStone = domain.SwitchStone(currentStone)
 }
 
 func (r *Reversi) GetScore() domain.Score {

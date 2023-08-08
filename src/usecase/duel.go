@@ -6,6 +6,6 @@ import (
 
 type DuelReversiHandler struct{}
 
-func (h *DuelReversiHandler) next(field *domain.Field, currentStone domain.Stone) domain.Stone {
-	return domain.SwitchStone(currentStone)
+func (h *DuelReversiHandler) postPut(r *Reversi) domain.Stone {
+	return domain.SwitchStone(r.currentPlayerStone)
 }
