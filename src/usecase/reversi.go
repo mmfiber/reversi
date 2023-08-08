@@ -7,11 +7,12 @@ import (
 )
 
 type ReversiHandler interface {
-	next(field *domain.Field, currentStone domain.Stone) domain.Stone
+	next(r *Reversi, currentStone domain.Stone) domain.Stone
 }
 
 func getRevesiHandler() ReversiHandler {
-	return &DuelReversiHandler{}
+	return &SingleReversiHandler{}
+	// return &DuelReversiHandler{}
 }
 
 type Reversi struct {
@@ -37,7 +38,7 @@ func (r *Reversi) CurrentPlayerStone() domain.Stone {
 }
 
 // シンプルだけど非効率なアルゴリズムになっている気がする
-func (r *Reversi) PlaceableFieldCells(playerStone domain.Stone) []domain.PlaceableFieldCell {
+func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFieldCell {
 	field := r.field.Value
 	opponentStone := domain.SwitchStone(playerStone)
 
@@ -73,8 +74,8 @@ func (r *Reversi) PlaceableFieldCells(playerStone domain.Stone) []domain.Placeab
 	}
 
 	// palceable かバリデーション
-	var placeable func(x, y, dx, dy int, arr *[]*domain.FieldCell) bool
-	placeable = func(x, y, dx, dy int, arr *[]*domain.FieldCell) bool {
+	var putable func(x, y, dx, dy int, arr *[]*domain.FieldCell) bool
+	putable = func(x, y, dx, dy int, arr *[]*domain.FieldCell) bool {
 		nx, ny := x+dx, y+dy
 		if nx < 0 || nx >= 8 || ny < 0 || ny >= 8 {
 			return false
@@ -90,44 +91,44 @@ func (r *Reversi) PlaceableFieldCells(playerStone domain.Stone) []domain.Placeab
 		}
 
 		*arr = append(*arr, field[nx][ny])
-		return placeable(nx, ny, dx, dy, arr)
+		return putable(nx, ny, dx, dy, arr)
 	}
 
-	placeableFieldCells := make([]domain.PlaceableFieldCell, 0, 64-1)
+	putableFieldCells := make([]domain.PutableFieldCell, 0, 64-1)
 	for _, cell := range emptyFieldCell {
-		var placeableFieldCell *domain.PlaceableFieldCell
+		var putableFieldCell *domain.PutableFieldCell
 
 		for i := 0; i < 8; i++ {
 			arr := make([]*domain.FieldCell, 0, 8-1)
-			if placeable(cell.Pos.X, cell.Pos.Y, dx[i], dy[i], &arr) {
-				if placeableFieldCell != nil {
-					placeableFieldCell.ReversiableCells = append(arr, placeableFieldCell.ReversiableCells...)
+			if putable(cell.Pos.X, cell.Pos.Y, dx[i], dy[i], &arr) {
+				if putableFieldCell != nil {
+					putableFieldCell.ReversiableCells = append(arr, putableFieldCell.ReversiableCells...)
 					continue
 				}
 
-				placeableFieldCell = &domain.PlaceableFieldCell{
+				putableFieldCell = &domain.PutableFieldCell{
 					FieldCell:        cell,
-					PlaceableStone:   playerStone,
+					PutableStone:     playerStone,
 					ReversiableCells: arr,
 				}
 			}
 		}
 
-		if placeableFieldCell != nil {
-			placeableFieldCells = append(placeableFieldCells, *placeableFieldCell)
+		if putableFieldCell != nil {
+			putableFieldCells = append(putableFieldCells, *putableFieldCell)
 		}
 	}
 
-	return placeableFieldCells
+	return putableFieldCells
 }
 
-func (r *Reversi) Placed(cell domain.PlaceableFieldCell) {
+func (r *Reversi) Put(cell domain.PutableFieldCell) {
 	field := r.field.Value
-	stone := cell.PlaceableStone
+	stone := cell.PutableStone
 
-	placedFieldCell := cell.FieldCell
-	placedFieldCell.Stone = stone
-	field[cell.Pos.X][cell.Pos.Y] = placedFieldCell
+	c := cell.FieldCell
+	c.Stone = stone
+	field[cell.Pos.X][cell.Pos.Y] = c
 
 	for _, reversed := range cell.ReversiableCells {
 		reversed.Stone = stone
@@ -135,11 +136,11 @@ func (r *Reversi) Placed(cell domain.PlaceableFieldCell) {
 		field[x][y] = reversed
 	}
 
-	r.currentPlayerStone = r.handler.next(r.field, stone)
+	r.currentPlayerStone = r.handler.next(r, stone)
 }
 
 func (r *Reversi) Pass(currentStone domain.Stone) {
-	r.currentPlayerStone = r.handler.next(r.field, currentStone)
+	r.currentPlayerStone = r.handler.next(r, currentStone)
 }
 
 func (r *Reversi) GetScore() domain.Score {
@@ -176,7 +177,7 @@ func (r *Reversi) GetFieldCell(ridx, cidx int) *domain.FieldCell {
 }
 
 func (r *Reversi) IsFinished() bool {
-	b := r.PlaceableFieldCells(domain.BlackStone)
-	w := r.PlaceableFieldCells(domain.WhiteStone)
+	b := r.PutableFieldCells(domain.BlackStone)
+	w := r.PutableFieldCells(domain.WhiteStone)
 	return len(b) == 0 && len(w) == 0
 }

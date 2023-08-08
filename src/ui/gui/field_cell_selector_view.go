@@ -96,9 +96,9 @@ func (f *FieldCellSelectorView) update(g *Gui) {
 	f.Clear()
 	g.Application.QueueUpdateDraw(func() {
 		playerStone := g.reversi.CurrentPlayerStone()
-		placeableFieldCells := g.reversi.PlaceableFieldCells(playerStone)
-		if len(placeableFieldCells) != 0 {
-			for idx, cell := range placeableFieldCells {
+		putableFieldCells := g.reversi.PutableFieldCells(playerStone)
+		if len(putableFieldCells) != 0 {
+			for idx, cell := range putableFieldCells {
 				escapedCell := cell
 				row, col := f.posToIndex(cell.Pos)
 				char, _ := strconverter.IntToChar(idx + 1)
@@ -107,13 +107,13 @@ func (f *FieldCellSelectorView) update(g *Gui) {
 					fmt.Sprintf("row %s and col %s", row, col),
 					strconverter.CharToRune(char),
 					func() {
-						g.reversi.Placed(escapedCell)
+						g.reversi.Put(escapedCell)
 						g.updateView()
 					},
 				)
 			}
 			// 先頭の選択肢をハイライト
-			g.highlightFieldCell(placeableFieldCells[0].FieldCell)
+			g.highlightFieldCell(putableFieldCells[0].FieldCell)
 		} else {
 			f.AddItem(
 				"pass",

@@ -29,9 +29,9 @@ type FieldCell struct {
 	Pos   FieldPos
 }
 
-type PlaceableFieldCell struct {
+type PutableFieldCell struct {
 	*FieldCell
-	PlaceableStone   Stone
+	PutableStone     Stone
 	ReversiableCells []*FieldCell
 }
 
