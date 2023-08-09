@@ -170,6 +170,8 @@ func (f *FieldCellListView) update(g *Gui) {
 					strconverter.CharToRune(char),
 					func() {
 						g.reversi.Put(escapedCell)
+						g.updateFieldView()
+						g.reversi.PostPut()
 						g.updateView()
 					},
 				)
@@ -182,7 +184,7 @@ func (f *FieldCellListView) update(g *Gui) {
 				"pass",
 				'p',
 				func() {
-					g.reversi.Pass(playerStone)
+					g.reversi.Pass()
 					g.updateView()
 				},
 			)

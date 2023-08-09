@@ -6,26 +6,26 @@ import (
 	"reversi/src/utility/slices"
 )
 
-type ReversiHandler interface {
-	postPut(r *Reversi) domain.Stone
+type ReversiStrategy interface {
+	postPut(r *Reversi)
 }
 
-func getRevesiHandler(solo, duel bool) ReversiHandler {
+func getRevesiHandler(solo, duel bool) ReversiStrategy {
 	if solo {
-		return &SoloReversiHandler{&SimpleReversiAlgolithm{}}
+		return &SoloReversiStrategy{&SimpleReversiAlgolithm{}}
 	}
-	return &DuelReversiHandler{}
+	return &DuelReversiStrategy{}
 }
 
 type Reversi struct {
-	handler            ReversiHandler
+	strategy           ReversiStrategy
 	field              *domain.Field
 	currentPlayerStone domain.Stone
 }
 
 func NewReversi(solo, duel bool) *Reversi {
 	return &Reversi{
-		handler:            getRevesiHandler(solo, duel),
+		strategy:           getRevesiHandler(solo, duel),
 		field:              domain.NewField(),
 		currentPlayerStone: domain.BlackStone,
 	}
@@ -124,7 +124,7 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 	return putableFieldCells
 }
 
-func (r *Reversi) put(cell domain.PutableFieldCell) {
+func (r *Reversi) Put(cell domain.PutableFieldCell) {
 	field := r.field.Value
 	stone := cell.PutableStone
 
@@ -136,15 +136,16 @@ func (r *Reversi) put(cell domain.PutableFieldCell) {
 		x, y := reversed.Pos.X, reversed.Pos.Y
 		field[x][y] = reversed
 	}
+
+	r.currentPlayerStone = domain.SwitchStone(r.currentPlayerStone)
 }
 
-func (r *Reversi) Put(cell domain.PutableFieldCell) {
-	r.put(cell)
-	r.currentPlayerStone = r.handler.postPut(r)
+func (r *Reversi) PostPut() {
+	r.strategy.postPut(r)
 }
 
-func (r *Reversi) Pass(currentStone domain.Stone) {
-	r.currentPlayerStone = domain.SwitchStone(currentStone)
+func (r *Reversi) Pass() {
+	r.currentPlayerStone = domain.SwitchStone(r.currentPlayerStone)
 }
 
 func (r *Reversi) GetScore() domain.Score {

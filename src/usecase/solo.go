@@ -4,15 +4,14 @@ import (
 	"reversi/src/domain"
 )
 
-type SoloReversiHandler struct {
+type SoloReversiStrategy struct {
 	ra ReversiAlgorithm
 }
 
-func (s *SoloReversiHandler) postPut(r *Reversi) domain.Stone {
-	cpStone := domain.SwitchStone(r.currentPlayerStone)
+func (s *SoloReversiStrategy) postPut(r *Reversi) {
+	cpStone := r.currentPlayerStone
 	cells := r.PutableFieldCells(cpStone)
 	s.ra.put(r, cpStone, cells)
-	return r.currentPlayerStone
 }
 
 type ReversiAlgorithm interface {
@@ -25,8 +24,6 @@ func (s *SimpleReversiAlgolithm) put(r *Reversi, cpStone domain.Stone, cells []d
 	if len(cells) == 0 {
 		return
 	}
-
-	// fmt.Printf("%#+v", cells)
 
 	weight := [][]int{
 		{30, -10, 2, 1, 1, 2, -10, 30},
@@ -45,5 +42,5 @@ func (s *SimpleReversiAlgolithm) put(r *Reversi, cpStone domain.Stone, cells []d
 		}
 	}
 
-	r.put(best)
+	r.Put(best)
 }
