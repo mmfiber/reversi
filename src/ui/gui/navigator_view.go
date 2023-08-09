@@ -21,7 +21,7 @@ func newNavigatorView() *NavigatorView {
 		gameScoreView:         newGameScoreView(),
 		fieldCellSelectorView: newFieldCellSelectorView(),
 	}
-	n.SetRows(1).SetColumns(1)
+	n.SetRows(0).SetColumns(0)
 	return n
 }
 
@@ -37,7 +37,7 @@ func (n *NavigatorView) update(g *Gui) {
 
 		updated = true
 		n.Clear()
-		n.AddItem(view, 1, 1, 1, 1, 0, 0, true)
+		n.AddItem(view, 0, 0, 1, 1, 0, 0, true)
 		n.view = view
 		g.SetFocus(view)
 		return
@@ -46,7 +46,7 @@ func (n *NavigatorView) update(g *Gui) {
 	switch g.status {
 	case GamePlaying:
 		if viewSetter(n.fieldCellSelectorView) {
-			n.fieldCellSelectorView.enableFieldHighlight(g)
+			n.fieldCellSelectorView.init(g)
 		}
 	case GameFinished:
 		viewSetter(n.gameScoreView)

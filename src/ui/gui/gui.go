@@ -31,6 +31,12 @@ const (
 	GameQuit
 )
 
+const (
+	BLACK_STONE_UNICODE = "\u26AB"
+	WHITE_STONE_UNICODE = "\u26AA"
+	EMPTY_STONE_UNICODE = "\u3000"
+)
+
 func New(solo, duel bool) *Gui {
 	return &Gui{
 		Application:   tview.NewApplication(),

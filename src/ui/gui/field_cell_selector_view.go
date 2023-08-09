@@ -11,31 +11,93 @@ import (
 	"github.com/rivo/tview"
 )
 
-type FieldCellSelectorView struct {
-	*tview.List
-	GuiView
-}
-
 const (
 	PASS_TEXT = "pass"
 	QUIT_TEXT = "quit"
 )
 
+type FieldCellSelectorView struct {
+	*tview.Grid
+	GuiView
+
+	textView *FieldCellTextView
+	listView *FieldCellListView
+}
+
 func newFieldCellSelectorView() *FieldCellSelectorView {
-	f := &FieldCellSelectorView{List: tview.NewList()}
+	f := &FieldCellSelectorView{
+		Grid:     tview.NewGrid(),
+		textView: newFieldCellTextView(),
+		listView: newFieldCellListView(),
+	}
+
+	f.SetRows(5, 0).SetColumns(0)
+	f.AddItem(f.textView, 0, 0, 1, 1, 0, 0, false)
+	f.AddItem(f.listView, 1, 0, 1, 1, 0, 0, true)
+	return f
+}
+
+func (f *FieldCellSelectorView) init(g *Gui) {
+	f.listView.enableFieldHighlight(g)
+	g.SetFocus(f.listView)
+}
+
+func (f *FieldCellSelectorView) update(g *Gui) {
+	f.textView.update(g)
+	f.listView.update(g)
+}
+
+type FieldCellTextView struct {
+	*tview.TextView
+	GuiView
+}
+
+func newFieldCellTextView() *FieldCellTextView {
+	f := &FieldCellTextView{TextView: tview.NewTextView()}
+	f.SetDisabled(true)
+	return f
+}
+
+func (f *FieldCellTextView) update(g *Gui) {
+	f.Clear()
+
+	var player, stoneUnicode string
+	switch stone := g.reversi.CurrentPlayerStone(); stone {
+	case domain.BlackStone:
+		player = "player 1"
+		stoneUnicode = BLACK_STONE_UNICODE
+	case domain.WhiteStone:
+		player = "player 2"
+		stoneUnicode = WHITE_STONE_UNICODE
+	default:
+		logger.Error(fmt.Errorf("unhandleable stone: %d", stone))
+		g.quit()
+	}
+
+	fmt.Fprintf(f, "Current Player: %s\n", player)
+	fmt.Fprintf(f, "Player Stone: %s\n", stoneUnicode)
+}
+
+type FieldCellListView struct {
+	*tview.List
+	GuiView
+}
+
+func newFieldCellListView() *FieldCellListView {
+	f := &FieldCellListView{List: tview.NewList()}
 	f.SetTitle(" Select where to put your stone ").
 		SetTitleAlign(tview.AlignLeft).
 		SetBorder(true)
 	return f
 }
 
-func (f *FieldCellSelectorView) posToIndex(pos domain.FieldPos) (string, string) {
+func (f *FieldCellListView) posToIndex(pos domain.FieldPos) (string, string) {
 	row := fmt.Sprint(pos.X + 1)
 	col, _ := strconverter.IntToCapitalizedChar(pos.Y + 1)
 	return row, col
 }
 
-func (f *FieldCellSelectorView) indexToPos(row, col string) domain.FieldPos {
+func (f *FieldCellListView) indexToPos(row, col string) domain.FieldPos {
 	ridx, err := strconv.Atoi(row)
 	if err != nil {
 		logger.Error(err)
@@ -45,7 +107,7 @@ func (f *FieldCellSelectorView) indexToPos(row, col string) domain.FieldPos {
 	return domain.FieldPos{X: ridx - 1, Y: cidx - 1}
 }
 
-func (f *FieldCellSelectorView) enableFieldHighlight(g *Gui) {
+func (f *FieldCellListView) enableFieldHighlight(g *Gui) {
 	f.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		var next int
 		count := f.GetItemCount()
@@ -87,7 +149,7 @@ func (f *FieldCellSelectorView) enableFieldHighlight(g *Gui) {
 	})
 }
 
-func (f *FieldCellSelectorView) update(g *Gui) {
+func (f *FieldCellListView) update(g *Gui) {
 	if g.reversi.IsFinished() {
 		g.gameFinished()
 		return

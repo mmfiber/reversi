@@ -23,7 +23,7 @@ func newFieldView() *FieldView {
 			row := r * 2
 			for c := 0; c < 9; c++ {
 				col := c * 2
-				char := " "
+				char := EMPTY_STONE_UNICODE
 				if r == 0 && c != 0 {
 					char, _ = strconverter.IntToCapitalizedChar(r + c)
 				}
@@ -32,7 +32,7 @@ func newFieldView() *FieldView {
 				}
 				cell := tview.NewTableCell(char).SetAlign(tview.AlignCenter)
 				table.SetCell(row, col, cell)
-				table.SetCell(row+1, col, tview.NewTableCell("\u2500"))   // devider for row
+				table.SetCell(row+1, col, tview.NewTableCell("\u23E4"))   // devider for row
 				table.SetCell(row, col+1, tview.NewTableCell("\u2502"))   // devider for col
 				table.SetCell(row+1, col+1, tview.NewTableCell("\u253c")) // join for row and col devider
 			}
@@ -54,11 +54,11 @@ func (f *FieldView) update(g *Gui) {
 			var newcell *tview.TableCell
 			switch cell.Stone {
 			case domain.BlackStone:
-				newcell = tview.NewTableCell("\u26AB")
+				newcell = tview.NewTableCell(BLACK_STONE_UNICODE)
 			case domain.WhiteStone:
-				newcell = tview.NewTableCell("\u26AA")
+				newcell = tview.NewTableCell(WHITE_STONE_UNICODE)
 			default:
-				newcell = tview.NewTableCell(" ")
+				newcell = tview.NewTableCell(EMPTY_STONE_UNICODE)
 			}
 
 			if hcell != nil && hcell.Pos.X == ridx && hcell.Pos.Y == cidx {
