@@ -85,7 +85,6 @@ func (g *Gui) highlightFieldCell(cell *domain.FieldCell) {
 	g.updateFieldView()
 }
 
-func (g *Gui) gameFinished() {
 func (g *Gui) onPutExecuted() {
 	if g.reversi.IsSoloPlay() {
 		g.status = GameComputerPlaying
@@ -98,6 +97,7 @@ func (g *Gui) onPostPutExecuted() {
 	g.updateView()
 }
 
+func (g *Gui) finishGame() {
 	g.status = GameFinished
 	g.updateView()
 }

@@ -172,7 +172,7 @@ func (f *FieldCellListView) disableFieldHighlight() {
 
 func (f *FieldCellListView) update(g *Gui) {
 	if g.reversi.IsFinished() {
-		g.gameFinished()
+		g.finishGame()
 		return
 	}
 
