@@ -38,7 +38,11 @@ func newFieldCellSelectorView() *FieldCellSelectorView {
 }
 
 func (f *FieldCellSelectorView) init(g *Gui) {
-	f.listView.enableFieldHighlight(g)
+	if g.status == GameComputerPlaying {
+		f.listView.disableFieldHighlight()
+	} else {
+		f.listView.enableFieldHighlight(g)
+	}
 	g.SetFocus(f.listView)
 }
 
@@ -59,8 +63,21 @@ func newFieldCellTextView() *FieldCellTextView {
 }
 
 func (f *FieldCellTextView) update(g *Gui) {
-	f.Clear()
+	g.Application.QueueUpdateDraw(func() {
+		f.Clear()
+		if g.status == GameComputerPlaying {
+			f.computerView(g)
+		} else {
+			f.playerView(g)
+		}
+	})
+}
 
+func (f *FieldCellTextView) computerView(g *Gui) {
+	fmt.Fprintf(f, "Computer is thinking...\n")
+}
+
+func (f *FieldCellTextView) playerView(g *Gui) {
 	var player, stoneUnicode string
 	switch stone := g.reversi.CurrentPlayerStone(); stone {
 	case domain.BlackStone:
@@ -149,53 +166,83 @@ func (f *FieldCellListView) enableFieldHighlight(g *Gui) {
 	})
 }
 
+func (f *FieldCellListView) disableFieldHighlight() {
+	f.SetInputCapture(nil)
+}
+
 func (f *FieldCellListView) update(g *Gui) {
 	if g.reversi.IsFinished() {
 		g.gameFinished()
 		return
 	}
 
-	f.Clear()
 	g.Application.QueueUpdateDraw(func() {
-		playerStone := g.reversi.CurrentPlayerStone()
-		putableFieldCells := g.reversi.PutableFieldCells(playerStone)
-		if len(putableFieldCells) != 0 {
-			for idx, cell := range putableFieldCells {
-				escapedCell := cell
-				row, col := f.posToIndex(cell.Pos)
-				char, _ := strconverter.IntToChar(idx + 1)
-				f.AddItem(
-					fmt.Sprintf("%s%s", row, col),
-					fmt.Sprintf("row %s and col %s", row, col),
-					strconverter.CharToRune(char),
-					func() {
-						g.reversi.Put(escapedCell)
-						g.updateFieldView()
-						g.reversi.PostPut()
-						g.updateView()
-					},
-				)
-			}
-			// 先頭の選択肢をハイライト
-			g.highlightFieldCell(putableFieldCells[0].FieldCell)
+		f.Clear()
+		if g.status == GameComputerPlaying {
+			f.computerView(g)
 		} else {
+			f.playerView(g)
+		}
+	})
+}
+
+func (f *FieldCellListView) computerView(g *Gui) {}
+
+func (f *FieldCellListView) playerView(g *Gui) {
+	playerStone := g.reversi.CurrentPlayerStone()
+	putableFieldCells := g.reversi.PutableFieldCells(playerStone)
+	if len(putableFieldCells) != 0 {
+		for idx, cell := range putableFieldCells {
+			escapedCell := cell
+			row, col := f.posToIndex(cell.Pos)
+			char, _ := strconverter.IntToChar(idx + 1)
 			f.AddItem(
-				"pass",
-				"pass",
-				'p',
+				fmt.Sprintf("%s%s", row, col),
+				fmt.Sprintf("row %s and col %s", row, col),
+				strconverter.CharToRune(char),
 				func() {
-					g.reversi.Pass()
-					g.updateView()
+					g.reversi.Put(escapedCell)
+					g.onPutExecuted()
+					// FieldCellListView が focus されていると際に、KeyEnter で cell を選択すると、
+					// tview/application.go.Run の EventLoop で `case event := <-a.events:` に入りこの無名関数が同期的に実行される
+					// https://github.com/rivo/tview/blob/6cc0565babafab419ac44bbce283aa5afcac8938/application.go#L343-L348
+					//
+					// 各view は g.Application.QueueUpdateDraw によって描画される
+					// https://github.com/rivo/tview/wiki/Concurrency#actions-in-goroutines
+					// https://github.com/rivo/tview/blob/6cc0565babafab419ac44bbce283aa5afcac8938/application.go#L761
+					//
+					// QueueUpdateDraw は EventLoop の `case update := <-a.updates:` で実行される
+					// 実装を見ると event case と update case を同時に処理することは不可能であり、
+					// event case によって処理されるこの関数の実行中に、update case による 他の view を変更は不可能である
+					// https://github.com/rivo/tview/blob/6cc0565babafab419ac44bbce283aa5afcac8938/application.go#L388
+					//
+					// なので、実行に時間のかかる PostPut は非同期に実行し、view の描画を可能にする
+					go func() {
+						g.reversi.PostPut()
+						g.onPostPutExecuted()
+					}()
 				},
 			)
 		}
+		// 先頭の選択肢をハイライト
+		g.highlightFieldCell(putableFieldCells[0].FieldCell)
+	} else {
 		f.AddItem(
-			"quit",
-			"finish and quit the game",
-			'q',
+			"pass",
+			"pass",
+			'p',
 			func() {
-				g.quit()
+				g.reversi.Pass()
+				g.updateView()
 			},
 		)
-	})
+	}
+	f.AddItem(
+		"quit",
+		"finish and quit the game",
+		'q',
+		func() {
+			g.quit()
+		},
+	)
 }

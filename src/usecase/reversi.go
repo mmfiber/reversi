@@ -186,3 +186,12 @@ func (r *Reversi) IsFinished() bool {
 	w := r.PutableFieldCells(domain.WhiteStone)
 	return len(b) == 0 && len(w) == 0
 }
+
+func (r *Reversi) IsSoloPlay() bool {
+	switch r.strategy.(type) {
+	case *SoloReversiStrategy:
+		return true
+	default:
+		return false
+	}
+}

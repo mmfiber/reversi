@@ -29,25 +29,23 @@ func (n *NavigatorView) update(g *Gui) {
 	viewSetter := func(view interface {
 		tview.Primitive
 		GuiView
-	}) (updated bool) {
-		updated = false
+	}) {
 		if n.view == view {
 			return
 		}
 
-		updated = true
-		n.Clear()
-		n.AddItem(view, 0, 0, 1, 1, 0, 0, true)
-		n.view = view
-		g.SetFocus(view)
-		return
+		g.Application.QueueUpdateDraw(func() {
+			n.Clear()
+			n.AddItem(view, 0, 0, 1, 1, 0, 0, true)
+			n.view = view
+			g.SetFocus(view)
+		})
 	}
 
 	switch g.status {
-	case GamePlaying:
-		if viewSetter(n.fieldCellSelectorView) {
-			n.fieldCellSelectorView.init(g)
-		}
+	case GamePlayerPlaying, GameComputerPlaying:
+		viewSetter(n.fieldCellSelectorView)
+		n.fieldCellSelectorView.init(g)
 	case GameFinished:
 		viewSetter(n.gameScoreView)
 	default:

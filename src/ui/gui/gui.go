@@ -26,7 +26,8 @@ type GuiView interface {
 type GuiStatus = int
 
 const (
-	GamePlaying GuiStatus = iota
+	GamePlayerPlaying GuiStatus = iota
+	GameComputerPlaying
 	GameFinished
 	GameQuit
 )
@@ -43,7 +44,7 @@ func New(solo, duel bool) *Gui {
 		reversi:       usecase.NewReversi(solo, duel),
 		fieldView:     newFieldView(),
 		navigatorView: newNavigatorView(),
-		status:        GamePlaying,
+		status:        GamePlayerPlaying,
 	}
 }
 
@@ -85,6 +86,18 @@ func (g *Gui) highlightFieldCell(cell *domain.FieldCell) {
 }
 
 func (g *Gui) gameFinished() {
+func (g *Gui) onPutExecuted() {
+	if g.reversi.IsSoloPlay() {
+		g.status = GameComputerPlaying
+	}
+	g.updateView()
+}
+
+func (g *Gui) onPostPutExecuted() {
+	g.status = GamePlayerPlaying
+	g.updateView()
+}
+
 	g.status = GameFinished
 	g.updateView()
 }

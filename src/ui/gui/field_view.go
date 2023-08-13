@@ -66,7 +66,9 @@ func (f *FieldView) update(g *Gui) {
 			}
 
 			// 上部・左部のインデックスとボーダーを考慮して cell を update
-			f.Table.SetCell((ridx+1)*2, (cidx+1)*2, newcell)
+			g.Application.QueueUpdateDraw(func() {
+				f.Table.SetCell((ridx+1)*2, (cidx+1)*2, newcell)
+			})
 		}
 	}
 }

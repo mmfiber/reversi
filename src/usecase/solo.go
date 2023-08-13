@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"reversi/src/domain"
+	"reversi/src/utility/time"
 )
 
 type SoloReversiStrategy struct {
@@ -11,6 +12,8 @@ type SoloReversiStrategy struct {
 func (s *SoloReversiStrategy) postPut(r *Reversi) {
 	cpStone := r.currentPlayerStone
 	cells := r.PutableFieldCells(cpStone)
+
+	time.Wait(1, 2)
 	s.ra.put(r, cpStone, cells)
 }
 

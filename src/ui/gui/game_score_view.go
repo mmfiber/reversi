@@ -24,15 +24,26 @@ func (gs *GameScoreView) update(g *Gui) {
 	score := g.reversi.GetScore()
 	switch score.WinnerStone {
 	case domain.BlackStone:
-		result = "Win player 1"
+		if g.reversi.IsSoloPlay() {
+			result = "Win player"
+		} else {
+			result = "Win player 1"
+		}
 	case domain.WhiteStone:
-		result = "Win player 2"
+		if g.reversi.IsSoloPlay() {
+			result = "Win computer"
+		} else {
+			result = "Win player 2"
+		}
 	default:
 		result = "Even"
 	}
 
-	fmt.Fprintf(gs, "Result: %s\n", result)
-	fmt.Fprintf(gs, "Score:\n")
-	fmt.Fprintf(gs, "\tPlayer1: %d\n", score.Black)
-	fmt.Fprintf(gs, "\tPlayer2: %d\n", score.White)
+	g.Application.QueueUpdateDraw(func() {
+		gs.Clear()
+		fmt.Fprintf(gs, "Result: %s\n", result)
+		fmt.Fprintf(gs, "Score:\n")
+		fmt.Fprintf(gs, "\tPlayer1: %d\n", score.Black)
+		fmt.Fprintf(gs, "\tPlayer2: %d\n", score.White)
+	})
 }
