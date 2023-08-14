@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reversi/src/domain"
 	"reversi/src/utility/slices"
+	"sync"
 )
 
 type ReversiStrategy interface {
@@ -18,6 +19,8 @@ func getRevesiHandler(solo, duel bool) ReversiStrategy {
 }
 
 type Reversi struct {
+	sync.RWMutex
+
 	strategy           ReversiStrategy
 	field              *domain.Field
 	currentPlayerStone domain.Stone
@@ -41,8 +44,10 @@ func (r *Reversi) CurrentPlayerStone() domain.Stone {
 
 // シンプルだけど非効率なアルゴリズムになっている気がする
 func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFieldCell {
+	r.RLock()
 	field := r.field.Value
 	opponentStone := domain.SwitchStone(playerStone)
+	r.RUnlock()
 
 	// 相手の駒が置かれている FieldCell を取得
 	opponentFieldCellList := make([]*domain.FieldCell, 0, 64-1)
@@ -125,6 +130,9 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 }
 
 func (r *Reversi) Put(cell domain.PutableFieldCell) {
+	r.Lock()
+	defer r.Unlock()
+
 	field := r.field.Value
 	stone := cell.PutableStone
 
@@ -145,12 +153,18 @@ func (r *Reversi) PostPut() {
 }
 
 func (r *Reversi) Pass() {
+	r.Lock()
+	defer r.Unlock()
 	r.currentPlayerStone = domain.SwitchStone(r.currentPlayerStone)
 }
 
 func (r *Reversi) GetScore() domain.Score {
+	r.RLock()
+	field := r.field.Value
+	r.RUnlock()
+
 	black, white := 0, 0
-	for _, row := range r.field.Value {
+	for _, row := range field {
 		for _, cell := range row {
 			switch cell.Stone {
 			case domain.BlackStone:
@@ -174,6 +188,9 @@ func (r *Reversi) GetScore() domain.Score {
 }
 
 func (r *Reversi) GetFieldCell(ridx, cidx int) *domain.FieldCell {
+	r.RLock()
+	defer r.RUnlock()
+
 	if ridx < 0 || ridx > 7 || cidx < 0 || cidx > 7 {
 		return nil
 	}
@@ -182,6 +199,9 @@ func (r *Reversi) GetFieldCell(ridx, cidx int) *domain.FieldCell {
 }
 
 func (r *Reversi) IsFinished() bool {
+	r.RLock()
+	defer r.RUnlock()
+
 	b := r.PutableFieldCells(domain.BlackStone)
 	w := r.PutableFieldCells(domain.WhiteStone)
 	return len(b) == 0 && len(w) == 0

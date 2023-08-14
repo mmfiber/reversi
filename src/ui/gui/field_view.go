@@ -47,28 +47,28 @@ func newFieldView() *FieldView {
 }
 
 func (f *FieldView) update(g *Gui) {
-	field := g.reversi.Field()
-	hcell := f.highlightedCell
-	for ridx, row := range field.Value {
-		for cidx, cell := range row {
-			var newcell *tview.TableCell
-			switch cell.Stone {
-			case domain.BlackStone:
-				newcell = tview.NewTableCell(BLACK_STONE_UNICODE)
-			case domain.WhiteStone:
-				newcell = tview.NewTableCell(WHITE_STONE_UNICODE)
-			default:
-				newcell = tview.NewTableCell(EMPTY_STONE_UNICODE)
-			}
+	g.Application.QueueUpdateDraw(func() {
+		field := g.reversi.Field()
+		hcell := f.highlightedCell
+		for ridx, row := range field.Value {
+			for cidx, cell := range row {
+				var newcell *tview.TableCell
+				switch cell.Stone {
+				case domain.BlackStone:
+					newcell = tview.NewTableCell(BLACK_STONE_UNICODE)
+				case domain.WhiteStone:
+					newcell = tview.NewTableCell(WHITE_STONE_UNICODE)
+				default:
+					newcell = tview.NewTableCell(EMPTY_STONE_UNICODE)
+				}
 
-			if hcell != nil && hcell.Pos.X == ridx && hcell.Pos.Y == cidx {
-				newcell.SetBackgroundColor(tcell.ColorAqua)
-			}
+				if hcell != nil && hcell.Pos.X == ridx && hcell.Pos.Y == cidx {
+					newcell.SetBackgroundColor(tcell.ColorAqua)
+				}
 
-			// 上部・左部のインデックスとボーダーを考慮して cell を update
-			g.Application.QueueUpdateDraw(func() {
+				// 上部・左部のインデックスとボーダーを考慮して cell を update
 				f.Table.SetCell((ridx+1)*2, (cidx+1)*2, newcell)
-			})
+			}
 		}
-	}
+	})
 }
