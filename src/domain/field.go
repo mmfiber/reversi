@@ -31,8 +31,8 @@ type FieldCell struct {
 
 type PutableFieldCell struct {
 	*FieldCell
-	PutableStone     Stone
-	ReversiableCells []*FieldCell
+	PutableStone    Stone
+	ReversibleCells []*FieldCell
 }
 
 type FieldPos struct {

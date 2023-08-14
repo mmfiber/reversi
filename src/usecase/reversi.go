@@ -109,14 +109,14 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 			arr := make([]*domain.FieldCell, 0, 8-1)
 			if putable(cell.Pos.X, cell.Pos.Y, dx[i], dy[i], &arr) {
 				if putableFieldCell != nil {
-					putableFieldCell.ReversiableCells = append(arr, putableFieldCell.ReversiableCells...)
+					putableFieldCell.ReversibleCells = append(arr, putableFieldCell.ReversibleCells...)
 					continue
 				}
 
 				putableFieldCell = &domain.PutableFieldCell{
-					FieldCell:        cell,
-					PutableStone:     playerStone,
-					ReversiableCells: arr,
+					FieldCell:       cell,
+					PutableStone:    playerStone,
+					ReversibleCells: arr,
 				}
 			}
 		}
@@ -139,7 +139,7 @@ func (r *Reversi) Put(cell domain.PutableFieldCell) {
 	field[cell.Pos.X][cell.Pos.Y] = cell.FieldCell
 	field[cell.Pos.X][cell.Pos.Y].Stone = stone
 
-	for _, reversed := range cell.ReversiableCells {
+	for _, reversed := range cell.ReversibleCells {
 		reversed.Stone = stone
 		x, y := reversed.Pos.X, reversed.Pos.Y
 		field[x][y] = reversed
