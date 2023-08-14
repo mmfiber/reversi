@@ -81,24 +81,28 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 	}
 
 	// palceable かバリデーション
-	var putable func(x, y, dx, dy int, arr *[]*domain.FieldCell) bool
-	putable = func(x, y, dx, dy int, arr *[]*domain.FieldCell) bool {
+	type putable struct {
+		found bool
+		arr   []*domain.FieldCell
+	}
+	var findPutable func(x, y, dx, dy int, arr []*domain.FieldCell) putable
+	findPutable = func(x, y, dx, dy int, arr []*domain.FieldCell) putable {
 		nx, ny := x+dx, y+dy
 		if nx < 0 || nx >= 8 || ny < 0 || ny >= 8 {
-			return false
+			return putable{found: false, arr: arr}
 		}
 
 		stone := field[nx][ny].Stone
 		if stone == domain.EmptyStone {
-			return false
+			return putable{found: false, arr: arr}
 		}
 
 		if stone == playerStone {
-			return len(*arr) != 0 // 隣り合うコマをカウントしないために length を見る
+			return putable{found: len(arr) != 0, arr: arr} // 隣り合うコマをカウントしないために length を見る
 		}
 
-		*arr = append(*arr, field[nx][ny])
-		return putable(nx, ny, dx, dy, arr)
+		arr = append(arr, field[nx][ny])
+		return findPutable(nx, ny, dx, dy, arr)
 	}
 
 	putableFieldCells := make([]domain.PutableFieldCell, 0, 64-1)
@@ -107,16 +111,16 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 
 		for i := 0; i < 8; i++ {
 			arr := make([]*domain.FieldCell, 0, 8-1)
-			if putable(cell.Pos.X, cell.Pos.Y, dx[i], dy[i], &arr) {
+			if putable := findPutable(cell.Pos.X, cell.Pos.Y, dx[i], dy[i], arr); putable.found {
 				if putableFieldCell != nil {
-					putableFieldCell.ReversibleCells = append(arr, putableFieldCell.ReversibleCells...)
+					putableFieldCell.ReversibleCells = append(putable.arr, putableFieldCell.ReversibleCells...)
 					continue
 				}
 
 				putableFieldCell = &domain.PutableFieldCell{
 					FieldCell:       cell,
 					PutableStone:    playerStone,
-					ReversibleCells: arr,
+					ReversibleCells: putable.arr,
 				}
 			}
 		}
