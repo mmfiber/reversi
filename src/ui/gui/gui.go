@@ -85,14 +85,14 @@ func (g *Gui) highlightFieldCell(cell domain.FieldCell) {
 	g.updateFieldView()
 }
 
-func (g *Gui) onPutExecuted() {
+func (g *Gui) onPutOrPassExecuted() {
 	if g.reversi.IsSoloPlay() {
 		g.status = GameComputerPlaying
 	}
 	g.updateView()
 }
 
-func (g *Gui) onPostPutExecuted() {
+func (g *Gui) onPostPutOrPassExecuted() {
 	g.status = GamePlayerPlaying
 	g.updateView()
 }

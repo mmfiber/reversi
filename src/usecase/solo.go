@@ -9,7 +9,7 @@ type SoloReversiStrategy struct {
 	ra ReversiAlgorithm
 }
 
-func (s *SoloReversiStrategy) postPut(r *Reversi) {
+func (s *SoloReversiStrategy) onPostPutOrPass(r *Reversi) {
 	cpStone := r.currentPlayerStone
 	cells := r.PutableFieldCells(cpStone)
 
@@ -25,6 +25,7 @@ type SimpleReversiAlgolithm struct{}
 
 func (s *SimpleReversiAlgolithm) put(r *Reversi, cpStone domain.Stone, cells []domain.PutableFieldCell) {
 	if len(cells) == 0 {
+		r.Pass()
 		return
 	}
 

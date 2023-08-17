@@ -12,7 +12,7 @@ import (
 var logger = log.NewLogger()
 
 type ReversiStrategy interface {
-	postPut(r *Reversi)
+	onPostPutOrPass(r *Reversi)
 }
 
 func getRevesiHandler(solo, duel bool) ReversiStrategy {
@@ -149,8 +149,8 @@ func (r *Reversi) Put(cell domain.PutableFieldCell) {
 	r.currentPlayerStone = domain.SwitchStone(r.currentPlayerStone)
 }
 
-func (r *Reversi) PostPut() {
-	r.strategy.postPut(r)
+func (r *Reversi) OnPostPutOrPass() {
+	r.strategy.onPostPutOrPass(r)
 }
 
 func (r *Reversi) Pass() {
