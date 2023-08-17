@@ -80,7 +80,7 @@ func (g *Gui) updateFieldView() {
 	go g.fieldView.update(g)
 }
 
-func (g *Gui) highlightFieldCell(cell *domain.FieldCell) {
+func (g *Gui) highlightFieldCell(cell domain.FieldCell) {
 	g.fieldView.highlightedCell = cell
 	g.updateFieldView()
 }

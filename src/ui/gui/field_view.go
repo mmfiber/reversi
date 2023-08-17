@@ -13,7 +13,7 @@ type FieldView struct {
 	*tview.Table
 	GuiView
 
-	highlightedCell *domain.FieldCell
+	highlightedCell domain.FieldCell
 }
 
 func newFieldView() *FieldView {
@@ -62,7 +62,7 @@ func (f *FieldView) update(g *Gui) {
 					newcell = tview.NewTableCell(EMPTY_STONE_UNICODE)
 				}
 
-				if hcell != nil && hcell.Pos.X == ridx && hcell.Pos.Y == cidx {
+				if hcell.Pos.X == ridx && hcell.Pos.Y == cidx {
 					newcell.SetBackgroundColor(tcell.ColorAqua)
 				}
 

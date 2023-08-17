@@ -2,10 +2,14 @@ package usecase
 
 import (
 	"fmt"
+	"os"
 	"reversi/src/domain"
+	"reversi/src/log"
 	"reversi/src/utility/slices"
 	"sync"
 )
+
+var logger = log.NewLogger()
 
 type ReversiStrategy interface {
 	postPut(r *Reversi)
@@ -50,9 +54,9 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 	r.RUnlock()
 
 	// 相手の駒が置かれている FieldCell を取得
-	opponentFieldCellList := make([]*domain.FieldCell, 0, 64-1)
+	opponentFieldCellList := make([]domain.FieldCell, 0, 64-1)
 	for _, row := range field {
-		filtered := slices.Filter(row, func(c *domain.FieldCell) bool {
+		filtered := slices.Filter(row, func(c domain.FieldCell) bool {
 			return c.Stone == opponentStone
 		})
 		opponentFieldCellList = append(opponentFieldCellList, filtered...)
@@ -63,8 +67,8 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 	dy := []int{0, 1, 1, 1, 0, -1, -1, -1}
 
 	// 相手の駒周囲の emptyFieldPos を取得
-	emptyFieldCell := make([]*domain.FieldCell, 0, 64-1)
-	checked := make(map[string]*domain.FieldCell)
+	emptyFieldCell := make([]domain.FieldCell, 0, 64-1)
+	checked := make(map[string]domain.FieldCell)
 	for _, cell := range opponentFieldCellList {
 		for i := 0; i < 8; i++ {
 			x, y := cell.Pos.X+dx[i], cell.Pos.Y+dy[i]
@@ -73,7 +77,7 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 			}
 
 			checking, key := field[x][y], fmt.Sprintf("%d%d", x, y)
-			if checking.Stone == domain.EmptyStone && checked[key] == nil {
+			if _, ok := checked[key]; !ok && checking.Stone == domain.EmptyStone {
 				emptyFieldCell = append(emptyFieldCell, field[x][y])
 				checked[key] = checking
 			}
@@ -83,10 +87,10 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 	// palceable かバリデーション
 	type putable struct {
 		found bool
-		arr   []*domain.FieldCell
+		arr   []domain.FieldCell
 	}
-	var findPutable func(x, y, dx, dy int, arr []*domain.FieldCell) putable
-	findPutable = func(x, y, dx, dy int, arr []*domain.FieldCell) putable {
+	var findPutable func(x, y, dx, dy int, arr []domain.FieldCell) putable
+	findPutable = func(x, y, dx, dy int, arr []domain.FieldCell) putable {
 		nx, ny := x+dx, y+dy
 		if nx < 0 || nx >= 8 || ny < 0 || ny >= 8 {
 			return putable{found: false, arr: arr}
@@ -107,26 +111,19 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 
 	putableFieldCells := make([]domain.PutableFieldCell, 0, 64-1)
 	for _, cell := range emptyFieldCell {
-		var putableFieldCell *domain.PutableFieldCell
+		var putableFieldCell domain.PutableFieldCell
 
 		for i := 0; i < 8; i++ {
-			arr := make([]*domain.FieldCell, 0, 8-1)
+			arr := make([]domain.FieldCell, 0, 8-1)
 			if putable := findPutable(cell.Pos.X, cell.Pos.Y, dx[i], dy[i], arr); putable.found {
-				if putableFieldCell != nil {
-					putableFieldCell.ReversibleCells = append(putable.arr, putableFieldCell.ReversibleCells...)
-					continue
-				}
-
-				putableFieldCell = &domain.PutableFieldCell{
-					FieldCell:       cell,
-					PutableStone:    playerStone,
-					ReversibleCells: putable.arr,
-				}
+				putableFieldCell.FieldCell = cell
+				putableFieldCell.PutableStone = playerStone
+				putableFieldCell.ReversibleCells = append(putable.arr, putableFieldCell.ReversibleCells...)
 			}
 		}
 
-		if putableFieldCell != nil {
-			putableFieldCells = append(putableFieldCells, *putableFieldCell)
+		if len(putableFieldCell.ReversibleCells) != 0 {
+			putableFieldCells = append(putableFieldCells, putableFieldCell)
 		}
 	}
 
@@ -191,12 +188,13 @@ func (r *Reversi) GetScore() domain.Score {
 	return domain.Score{Black: black, White: white, WinnerStone: winnerStone}
 }
 
-func (r *Reversi) GetFieldCell(ridx, cidx int) *domain.FieldCell {
+func (r *Reversi) GetFieldCell(ridx, cidx int) domain.FieldCell {
 	r.RLock()
 	defer r.RUnlock()
 
 	if ridx < 0 || ridx > 7 || cidx < 0 || cidx > 7 {
-		return nil
+		logger.Error(fmt.Errorf("index out of range, ridx: %d, cidx: %d", ridx, cidx))
+		os.Exit(1)
 	}
 
 	return r.field.Value[ridx][cidx]
