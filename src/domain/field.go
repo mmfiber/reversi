@@ -1,15 +1,15 @@
 package domain
 
 type Field struct {
-	Value [][]*FieldCell
+	Value [][]FieldCell
 }
 
 func NewField() *Field {
-	field := make([][]*FieldCell, 8)
+	field := make([][]FieldCell, 8)
 	for x := range field {
-		field[x] = make([]*FieldCell, 8)
+		field[x] = make([]FieldCell, 8)
 		for y := range field[x] {
-			field[x][y] = &FieldCell{
+			field[x][y] = FieldCell{
 				Stone: EmptyStone,
 				Pos:   FieldPos{x, y},
 			}
@@ -30,9 +30,9 @@ type FieldCell struct {
 }
 
 type PutableFieldCell struct {
-	*FieldCell
+	FieldCell
 	PutableStone    Stone
-	ReversibleCells []*FieldCell
+	ReversibleCells []FieldCell
 }
 
 type FieldPos struct {
