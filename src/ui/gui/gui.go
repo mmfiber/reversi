@@ -13,7 +13,7 @@ var logger = log.NewLogger()
 
 type Gui struct {
 	*tview.Application
-	reversi       *usecase.Reversi
+	reversi       usecase.Reversi
 	fieldView     *FieldView
 	navigatorView *NavigatorView
 	status        GuiStatus
@@ -85,16 +85,24 @@ func (g *Gui) highlightFieldCell(cell domain.FieldCell) {
 	g.updateFieldView()
 }
 
-func (g *Gui) onPutOrPassExecuted() {
+func (g *Gui) putExecuted() {
 	if g.reversi.IsSoloPlay() {
 		g.status = GameComputerPlaying
 	}
 	g.updateView()
 }
 
-func (g *Gui) onPostPutOrPassExecuted() {
+func (g *Gui) passExecuted() {
+	g.putExecuted()
+}
+
+func (g *Gui) postPutExecuted() {
 	g.status = GamePlayerPlaying
 	g.updateView()
+}
+
+func (g *Gui) postPassExecuted() {
+	g.postPutExecuted()
 }
 
 func (g *Gui) finishGame() {

@@ -1,7 +1,13 @@
 package usecase
 
-type DuelReversiStrategy struct {
-	Reversi
+type DuelReversi struct {
+	*BaseReversi
 }
 
-func (h *DuelReversiStrategy) onPostPutOrPass(r *Reversi) {}
+func (d *DuelReversi) PostPut() {}
+
+func (d *DuelReversi) PostPass() {}
+
+func (d *DuelReversi) IsSoloPlay() bool {
+	return false
+}

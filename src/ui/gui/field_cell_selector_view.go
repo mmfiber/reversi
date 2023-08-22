@@ -202,7 +202,7 @@ func (f *FieldCellListView) playerView(g *Gui) {
 				strconverter.CharToRune(char),
 				func() {
 					g.reversi.Put(escapedCell)
-					g.onPutOrPassExecuted()
+					g.putExecuted()
 					// FieldCellListView が focus されていると際に、KeyEnter で cell を選択すると、
 					// tview/application.go.Run の EventLoop で `case event := <-a.events:` に入りこの無名関数が同期的に実行される
 					// https://github.com/rivo/tview/blob/6cc0565babafab419ac44bbce283aa5afcac8938/application.go#L343-L348
@@ -216,10 +216,10 @@ func (f *FieldCellListView) playerView(g *Gui) {
 					// event case によって処理されるこの関数の実行中に、update case による 他の view を変更は不可能である
 					// https://github.com/rivo/tview/blob/6cc0565babafab419ac44bbce283aa5afcac8938/application.go#L388
 					//
-					// なので、実行に時間のかかる OnPostPutOrPass は非同期に実行し、view の描画を可能にする
+					// なので、実行に時間のかかる PostPut は非同期に実行し、view の描画を可能にする
 					go func() {
-						g.reversi.OnPostPutOrPass()
-						g.onPostPutOrPassExecuted()
+						g.reversi.PostPut()
+						g.postPutExecuted()
 					}()
 				},
 			)
@@ -233,10 +233,10 @@ func (f *FieldCellListView) playerView(g *Gui) {
 			'p',
 			func() {
 				g.reversi.Pass()
-				g.onPutOrPassExecuted()
+				g.passExecuted()
 				go func() {
-					g.reversi.OnPostPutOrPass()
-					g.onPostPutOrPassExecuted()
+					g.reversi.PostPass()
+					g.postPassExecuted()
 				}()
 			},
 		)

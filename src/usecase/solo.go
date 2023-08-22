@@ -5,27 +5,38 @@ import (
 	"reversi/src/utility/time"
 )
 
-type SoloReversiStrategy struct {
+type SoloReversi struct {
+	*BaseReversi
 	ra ReversiAlgorithm
 }
 
-func (s *SoloReversiStrategy) onPostPutOrPass(r *Reversi) {
+func (s *SoloReversi) PostPut() {
+	r := s.BaseReversi
+
 	cpStone := r.currentPlayerStone
 	cells := r.PutableFieldCells(cpStone)
 
 	time.Wait(1, 2)
-	s.ra.put(r, cpStone, cells)
+	s.ra.put(s, cpStone, cells)
+}
+
+func (s *SoloReversi) PostPass() {
+	s.PostPut()
+}
+
+func (s *SoloReversi) IsSoloPlay() bool {
+	return true
 }
 
 type ReversiAlgorithm interface {
-	put(r *Reversi, cpStone domain.Stone, cells []domain.PutableFieldCell)
+	put(s *SoloReversi, cpStone domain.Stone, cells []domain.PutableFieldCell)
 }
 
 type SimpleReversiAlgolithm struct{}
 
-func (s *SimpleReversiAlgolithm) put(r *Reversi, cpStone domain.Stone, cells []domain.PutableFieldCell) {
+func (ra *SimpleReversiAlgolithm) put(s *SoloReversi, cpStone domain.Stone, cells []domain.PutableFieldCell) {
 	if len(cells) == 0 {
-		r.Pass()
+		s.Pass()
 		return
 	}
 
@@ -46,5 +57,5 @@ func (s *SimpleReversiAlgolithm) put(r *Reversi, cpStone domain.Stone, cells []d
 		}
 	}
 
-	r.Put(best)
+	s.Put(best)
 }

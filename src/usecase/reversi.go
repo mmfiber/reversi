@@ -9,45 +9,50 @@ import (
 	"sync"
 )
 
+type Reversi interface {
+	Field() *domain.Field
+	CurrentPlayerStone() domain.Stone
+	PutableFieldCells(playerStone domain.Stone) []domain.PutableFieldCell
+	Put(cell domain.PutableFieldCell)
+	PostPut()
+	Pass()
+	PostPass()
+	GetScore() domain.Score
+	GetFieldCell(ridx, cidx int) domain.FieldCell
+	IsFinished() bool
+	IsSoloPlay() bool
+}
+
 var logger = log.NewLogger()
 
-type ReversiStrategy interface {
-	onPostPutOrPass(r *Reversi)
-}
-
-func getRevesiHandler(solo, duel bool) ReversiStrategy {
-	if solo {
-		return &SoloReversiStrategy{&SimpleReversiAlgolithm{}}
+func NewReversi(solo, duel bool) Reversi {
+	base := &BaseReversi{
+		field:              domain.NewField(),
+		currentPlayerStone: domain.BlackStone,
 	}
-	return &DuelReversiStrategy{}
+	if solo {
+		return &SoloReversi{base, &SimpleReversiAlgolithm{}}
+	}
+	return &DuelReversi{base}
 }
 
-type Reversi struct {
+type BaseReversi struct {
 	sync.RWMutex
 
-	strategy           ReversiStrategy
 	field              *domain.Field
 	currentPlayerStone domain.Stone
 }
 
-func NewReversi(solo, duel bool) *Reversi {
-	return &Reversi{
-		strategy:           getRevesiHandler(solo, duel),
-		field:              domain.NewField(),
-		currentPlayerStone: domain.BlackStone,
-	}
-}
-
-func (r *Reversi) Field() *domain.Field {
+func (r *BaseReversi) Field() *domain.Field {
 	return r.field
 }
 
-func (r *Reversi) CurrentPlayerStone() domain.Stone {
+func (r *BaseReversi) CurrentPlayerStone() domain.Stone {
 	return r.currentPlayerStone
 }
 
 // シンプルだけど非効率なアルゴリズムになっている気がする
-func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFieldCell {
+func (r *BaseReversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFieldCell {
 	r.RLock()
 	field := r.field.Value
 	opponentStone := domain.SwitchStone(playerStone)
@@ -130,7 +135,7 @@ func (r *Reversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFi
 	return putableFieldCells
 }
 
-func (r *Reversi) Put(cell domain.PutableFieldCell) {
+func (r *BaseReversi) Put(cell domain.PutableFieldCell) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -149,17 +154,13 @@ func (r *Reversi) Put(cell domain.PutableFieldCell) {
 	r.currentPlayerStone = domain.SwitchStone(r.currentPlayerStone)
 }
 
-func (r *Reversi) OnPostPutOrPass() {
-	r.strategy.onPostPutOrPass(r)
-}
-
-func (r *Reversi) Pass() {
+func (r *BaseReversi) Pass() {
 	r.Lock()
 	defer r.Unlock()
 	r.currentPlayerStone = domain.SwitchStone(r.currentPlayerStone)
 }
 
-func (r *Reversi) GetScore() domain.Score {
+func (r *BaseReversi) GetScore() domain.Score {
 	r.RLock()
 	field := r.field.Value
 	r.RUnlock()
@@ -188,7 +189,7 @@ func (r *Reversi) GetScore() domain.Score {
 	return domain.Score{Black: black, White: white, WinnerStone: winnerStone}
 }
 
-func (r *Reversi) GetFieldCell(ridx, cidx int) domain.FieldCell {
+func (r *BaseReversi) GetFieldCell(ridx, cidx int) domain.FieldCell {
 	r.RLock()
 	defer r.RUnlock()
 
@@ -200,20 +201,11 @@ func (r *Reversi) GetFieldCell(ridx, cidx int) domain.FieldCell {
 	return r.field.Value[ridx][cidx]
 }
 
-func (r *Reversi) IsFinished() bool {
+func (r *BaseReversi) IsFinished() bool {
 	r.RLock()
 	defer r.RUnlock()
 
 	b := r.PutableFieldCells(domain.BlackStone)
 	w := r.PutableFieldCells(domain.WhiteStone)
 	return len(b) == 0 && len(w) == 0
-}
-
-func (r *Reversi) IsSoloPlay() bool {
-	switch r.strategy.(type) {
-	case *SoloReversiStrategy:
-		return true
-	default:
-		return false
-	}
 }
