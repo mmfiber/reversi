@@ -48,7 +48,7 @@ func newFieldView() *FieldView {
 
 func (f *FieldView) update(g *Gui) {
 	g.Application.QueueUpdateDraw(func() {
-		field := g.reversi.Field()
+		field := g.state.Field
 		hcell := f.highlightedCell
 		for ridx, row := range field.Value {
 			for cidx, cell := range row {

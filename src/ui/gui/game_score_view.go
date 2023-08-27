@@ -21,7 +21,7 @@ func newGameScoreView() *GameScoreView {
 func (gs *GameScoreView) update(g *Gui) {
 	var result string
 
-	score := g.reversi.GetScore()
+	score := g.reversi.GetScore(g.state.Field)
 	switch score.WinnerStone {
 	case domain.BlackStone:
 		if g.reversi.IsSoloPlay() {

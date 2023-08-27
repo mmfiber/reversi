@@ -79,7 +79,7 @@ func (f *FieldCellTextView) computerView(g *Gui) {
 
 func (f *FieldCellTextView) playerView(g *Gui) {
 	var player, stoneUnicode string
-	switch stone := g.reversi.CurrentPlayerStone(); stone {
+	switch stone := g.state.CurrentPlayerStone; stone {
 	case domain.BlackStone:
 		player = "player 1"
 		stoneUnicode = BLACK_STONE_UNICODE
@@ -159,7 +159,7 @@ func (f *FieldCellListView) enableFieldHighlight(g *Gui) {
 		}
 
 		pos := f.indexToPos(mainText[:1], mainText[1:])
-		cell := g.reversi.GetFieldCell(pos.X, pos.Y)
+		cell := g.state.Field.GetCell(pos.X, pos.Y)
 		g.highlightFieldCell(cell)
 
 		return event
@@ -171,7 +171,7 @@ func (f *FieldCellListView) disableFieldHighlight() {
 }
 
 func (f *FieldCellListView) update(g *Gui) {
-	if g.reversi.IsFinished() {
+	if g.reversi.IsFinished(g.state.Field) {
 		g.finishGame()
 		return
 	}
@@ -189,8 +189,10 @@ func (f *FieldCellListView) update(g *Gui) {
 func (f *FieldCellListView) computerView(g *Gui) {}
 
 func (f *FieldCellListView) playerView(g *Gui) {
-	playerStone := g.reversi.CurrentPlayerStone()
-	putableFieldCells := g.reversi.PutableFieldCells(playerStone)
+	putableFieldCells := g.reversi.PutableFieldCells(
+		g.state.Field,
+		g.state.CurrentPlayerStone,
+	)
 	if len(putableFieldCells) != 0 {
 		for idx, cell := range putableFieldCells {
 			escapedCell := cell
@@ -201,9 +203,7 @@ func (f *FieldCellListView) playerView(g *Gui) {
 				fmt.Sprintf("row %s and col %s", row, col),
 				strconverter.CharToRune(char),
 				func() {
-					g.reversi.Put(escapedCell)
-					g.putExecuted()
-					// FieldCellListView が focus されていると際に、KeyEnter で cell を選択すると、
+					// FieldCellListView が focus されている際に、KeyEnter で cell を選択すると、
 					// tview/application.go.Run の EventLoop で `case event := <-a.events:` に入りこの無名関数が同期的に実行される
 					// https://github.com/rivo/tview/blob/6cc0565babafab419ac44bbce283aa5afcac8938/application.go#L343-L348
 					//
@@ -216,11 +216,8 @@ func (f *FieldCellListView) playerView(g *Gui) {
 					// event case によって処理されるこの関数の実行中に、update case による 他の view を変更は不可能である
 					// https://github.com/rivo/tview/blob/6cc0565babafab419ac44bbce283aa5afcac8938/application.go#L388
 					//
-					// なので、実行に時間のかかる PostPut は非同期に実行し、view の描画を可能にする
-					go func() {
-						g.reversi.PostPut()
-						g.postPutExecuted()
-					}()
+					// なので、実行に時間のかかる cellSelected は非同期に実行し、view の描画を可能にする
+					go g.cellSelected(escapedCell)
 				},
 			)
 		}
@@ -232,12 +229,8 @@ func (f *FieldCellListView) playerView(g *Gui) {
 			"pass",
 			'p',
 			func() {
-				g.reversi.Pass()
-				g.passExecuted()
-				go func() {
-					g.reversi.PostPass()
-					g.postPassExecuted()
-				}()
+				// cellSelected と同様に、非同期に実行し、view の描画を可能にする
+				go g.pass()
 			},
 		)
 	}
