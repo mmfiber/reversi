@@ -10,18 +10,19 @@ type SoloReversi struct {
 	ra ReversiAlgorithm
 }
 
-func (s *SoloReversi) PostPut() {
-	r := s.BaseReversi
+func (s *SoloReversi) Put(field domain.Field, playerStone domain.Stone) domain.PutableFieldCell {
+	cpStone := playerStone
+	putableCells := s.BaseReversi.PutableFieldCells(field, cpStone)
 
-	cpStone := r.currentPlayerStone
-	cells := r.PutableFieldCells(cpStone)
+	timer := make(chan int)
+	go func() {
+		time.Wait(1, 2)
+		timer <- 1
+	}()
+	cell := s.ra.put(s, cpStone, putableCells)
 
-	time.Wait(1, 2)
-	s.ra.put(s, cpStone, cells)
-}
-
-func (s *SoloReversi) PostPass() {
-	s.PostPut()
+	<-timer
+	return cell
 }
 
 func (s *SoloReversi) IsSoloPlay() bool {
@@ -29,15 +30,14 @@ func (s *SoloReversi) IsSoloPlay() bool {
 }
 
 type ReversiAlgorithm interface {
-	put(s *SoloReversi, cpStone domain.Stone, cells []domain.PutableFieldCell)
+	put(s *SoloReversi, cpStone domain.Stone, cells []domain.PutableFieldCell) domain.PutableFieldCell
 }
 
 type SimpleReversiAlgolithm struct{}
 
-func (ra *SimpleReversiAlgolithm) put(s *SoloReversi, cpStone domain.Stone, cells []domain.PutableFieldCell) {
+func (ra *SimpleReversiAlgolithm) put(s *SoloReversi, cpStone domain.Stone, cells []domain.PutableFieldCell) domain.PutableFieldCell {
 	if len(cells) == 0 {
-		s.Pass()
-		return
+		return domain.PutableFieldCell{}
 	}
 
 	weight := [][]int{
@@ -57,5 +57,5 @@ func (ra *SimpleReversiAlgolithm) put(s *SoloReversi, cpStone domain.Stone, cell
 		}
 	}
 
-	s.Put(best)
+	return best
 }

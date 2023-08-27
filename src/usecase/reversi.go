@@ -2,61 +2,32 @@ package usecase
 
 import (
 	"fmt"
-	"os"
 	"reversi/src/domain"
-	"reversi/src/log"
 	"reversi/src/utility/slices"
-	"sync"
 )
 
 type Reversi interface {
-	Field() *domain.Field
-	CurrentPlayerStone() domain.Stone
-	PutableFieldCells(playerStone domain.Stone) []domain.PutableFieldCell
-	Put(cell domain.PutableFieldCell)
-	PostPut()
-	Pass()
-	PostPass()
-	GetScore() domain.Score
-	GetFieldCell(ridx, cidx int) domain.FieldCell
-	IsFinished() bool
+	PutableFieldCells(field domain.Field, playerStone domain.Stone) []domain.PutableFieldCell
+	Put(field domain.Field, playerStone domain.Stone) domain.PutableFieldCell
+	GetScore(field domain.Field) domain.Score
+	IsFinished(field domain.Field) bool
 	IsSoloPlay() bool
 }
 
-var logger = log.NewLogger()
-
 func NewReversi(solo, duel bool) Reversi {
-	base := &BaseReversi{
-		field:              domain.NewField(),
-		currentPlayerStone: domain.BlackStone,
-	}
+	base := &BaseReversi{}
 	if solo {
 		return &SoloReversi{base, &SimpleReversiAlgolithm{}}
 	}
 	return &DuelReversi{base}
 }
 
-type BaseReversi struct {
-	sync.RWMutex
-
-	field              *domain.Field
-	currentPlayerStone domain.Stone
-}
-
-func (r *BaseReversi) Field() *domain.Field {
-	return r.field
-}
-
-func (r *BaseReversi) CurrentPlayerStone() domain.Stone {
-	return r.currentPlayerStone
-}
+type BaseReversi struct{}
 
 // シンプルだけど非効率なアルゴリズムになっている気がする
-func (r *BaseReversi) PutableFieldCells(playerStone domain.Stone) []domain.PutableFieldCell {
-	r.RLock()
-	field := r.field.Value
+func (r *BaseReversi) PutableFieldCells(f domain.Field, playerStone domain.Stone) []domain.PutableFieldCell {
+	field := f.Value
 	opponentStone := domain.SwitchStone(playerStone)
-	r.RUnlock()
 
 	// 相手の駒が置かれている FieldCell を取得
 	opponentFieldCellList := make([]domain.FieldCell, 0, 64-1)
@@ -89,7 +60,7 @@ func (r *BaseReversi) PutableFieldCells(playerStone domain.Stone) []domain.Putab
 		}
 	}
 
-	// palceable かバリデーション
+	// putable かバリデーション
 	type putable struct {
 		found bool
 		arr   []domain.FieldCell
@@ -114,56 +85,34 @@ func (r *BaseReversi) PutableFieldCells(playerStone domain.Stone) []domain.Putab
 		return findPutable(nx, ny, dx, dy, arr)
 	}
 
-	putableFieldCells := make([]domain.PutableFieldCell, 0, 64-1)
+	pfcells := make([]domain.PutableFieldCell, 0, 64-1)
 	for _, cell := range emptyFieldCell {
-		var putableFieldCell domain.PutableFieldCell
+		var pfcell domain.PutableFieldCell
 
 		for i := 0; i < 8; i++ {
 			arr := make([]domain.FieldCell, 0, 8-1)
 			if putable := findPutable(cell.Pos.X, cell.Pos.Y, dx[i], dy[i], arr); putable.found {
-				putableFieldCell.FieldCell = cell
-				putableFieldCell.PutableStone = playerStone
-				putableFieldCell.ReversibleCells = append(putable.arr, putableFieldCell.ReversibleCells...)
+				pfcell.FieldCell = cell
+				pfcell.Stone = playerStone
+				pfcell.ReversibleCells = append(
+					putable.arr,
+					pfcell.ReversibleCells...,
+				)
 			}
 		}
 
-		if len(putableFieldCell.ReversibleCells) != 0 {
-			putableFieldCells = append(putableFieldCells, putableFieldCell)
+		if len(pfcell.ReversibleCells) != 0 {
+			// コマ自身も ReversibleCells に追加する
+			pfcell.ReversibleCells = append(pfcell.ReversibleCells, cell)
+			pfcells = append(pfcells, pfcell)
 		}
 	}
 
-	return putableFieldCells
+	return pfcells
 }
 
-func (r *BaseReversi) Put(cell domain.PutableFieldCell) {
-	r.Lock()
-	defer r.Unlock()
-
-	field := r.field.Value
-	stone := cell.PutableStone
-
-	field[cell.Pos.X][cell.Pos.Y] = cell.FieldCell
-	field[cell.Pos.X][cell.Pos.Y].Stone = stone
-
-	for _, reversed := range cell.ReversibleCells {
-		reversed.Stone = stone
-		x, y := reversed.Pos.X, reversed.Pos.Y
-		field[x][y] = reversed
-	}
-
-	r.currentPlayerStone = domain.SwitchStone(r.currentPlayerStone)
-}
-
-func (r *BaseReversi) Pass() {
-	r.Lock()
-	defer r.Unlock()
-	r.currentPlayerStone = domain.SwitchStone(r.currentPlayerStone)
-}
-
-func (r *BaseReversi) GetScore() domain.Score {
-	r.RLock()
-	field := r.field.Value
-	r.RUnlock()
+func (r *BaseReversi) GetScore(f domain.Field) domain.Score {
+	field := f.Value
 
 	black, white := 0, 0
 	for _, row := range field {
@@ -189,23 +138,8 @@ func (r *BaseReversi) GetScore() domain.Score {
 	return domain.Score{Black: black, White: white, WinnerStone: winnerStone}
 }
 
-func (r *BaseReversi) GetFieldCell(ridx, cidx int) domain.FieldCell {
-	r.RLock()
-	defer r.RUnlock()
-
-	if ridx < 0 || ridx > 7 || cidx < 0 || cidx > 7 {
-		logger.Error(fmt.Errorf("index out of range, ridx: %d, cidx: %d", ridx, cidx))
-		os.Exit(1)
-	}
-
-	return r.field.Value[ridx][cidx]
-}
-
-func (r *BaseReversi) IsFinished() bool {
-	r.RLock()
-	defer r.RUnlock()
-
-	b := r.PutableFieldCells(domain.BlackStone)
-	w := r.PutableFieldCells(domain.WhiteStone)
+func (r *BaseReversi) IsFinished(field domain.Field) bool {
+	b := r.PutableFieldCells(field, domain.BlackStone)
+	w := r.PutableFieldCells(field, domain.WhiteStone)
 	return len(b) == 0 && len(w) == 0
 }

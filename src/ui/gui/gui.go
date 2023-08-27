@@ -17,6 +17,7 @@ type Gui struct {
 	fieldView     *FieldView
 	navigatorView *NavigatorView
 	status        GuiStatus
+	state         *GuiState
 }
 
 type GuiView interface {
@@ -45,6 +46,7 @@ func New(solo, duel bool) *Gui {
 		fieldView:     newFieldView(),
 		navigatorView: newNavigatorView(),
 		status:        GamePlayerPlaying,
+		state:         NewGuiState(),
 	}
 }
 
@@ -76,33 +78,48 @@ func (g *Gui) updateView() {
 	}
 }
 
-func (g *Gui) updateFieldView() {
+func (g *Gui) highlightFieldCell(cell domain.FieldCell) {
+	g.fieldView.highlightedCell = cell
 	go g.fieldView.update(g)
 }
 
-func (g *Gui) highlightFieldCell(cell domain.FieldCell) {
-	g.fieldView.highlightedCell = cell
-	g.updateFieldView()
-}
-
-func (g *Gui) putExecuted() {
-	if g.reversi.IsSoloPlay() {
-		g.status = GameComputerPlaying
-	}
+func (g *Gui) computerPlay() <-chan struct{} {
+	g.status = GameComputerPlaying
 	g.updateView()
+
+	done := make(chan struct{})
+	go func() {
+		cell := g.reversi.Put(g.state.Field, g.state.CurrentPlayerStone)
+		g.state.reverseFieldCells(cell)
+		g.state.switchStone()
+		g.updateView()
+		close(done)
+	}()
+
+	return done
 }
 
-func (g *Gui) passExecuted() {
-	g.putExecuted()
-}
-
-func (g *Gui) postPutExecuted() {
+func (g *Gui) playerPlay() {
 	g.status = GamePlayerPlaying
 	g.updateView()
 }
 
-func (g *Gui) postPassExecuted() {
-	g.postPutExecuted()
+func (g *Gui) cellSelected(cell domain.PutableFieldCell) {
+	g.state.reverseFieldCells(cell)
+	g.state.switchStone()
+	if g.reversi.IsSoloPlay() {
+		done := g.computerPlay()
+		<-done
+	}
+	g.playerPlay()
+}
+
+func (g *Gui) pass() {
+	g.state.switchStone()
+	if g.reversi.IsSoloPlay() {
+		g.computerPlay()
+	}
+	g.updateView()
 }
 
 func (g *Gui) finishGame() {
